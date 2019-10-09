@@ -26,6 +26,8 @@
 #include <thread>
 #include <map>
 
+using namespace std;
+
 // fix SOCK_NONBLOCK for OSX
 #ifndef SOCK_NONBLOCK
 #include <fcntl.h>
@@ -41,7 +43,7 @@ class Client
 {
   public:
     int sock;              // socket of client connection
-    std::string name;           // Limit length of name of client's user
+    string name;           // Limit length of name of client's user
 
     Client(int socket) : sock(socket){} 
 
@@ -55,7 +57,7 @@ class Client
 // Quite often a simple array can be used as a lookup table, 
 // (indexed on socket no.) sacrificing memory for speed.
 
-std::map<int, Client*> clients; // Lookup table for per Client information
+map<int, Client*> clients; // Lookup table for per Client information
 
 // Open socket for specified port.
 //
@@ -132,7 +134,7 @@ void closeClient(int clientSocket, fd_set *openSockets, int *maxfds)
      {
         for(auto const& p : clients)
         {
-            *maxfds = std::max(*maxfds, p.second->sock);
+            *maxfds = max(*maxfds, p.second->sock);
         }
      }
 
@@ -146,77 +148,85 @@ void closeClient(int clientSocket, fd_set *openSockets, int *maxfds)
 void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds, 
                   char *buffer) 
 {
-  std::vector<std::string> tokens;
-  std::string token;
+    vector<string> tokens;
+    string token;
 
-  // Split command from client into tokens for parsing
-  std::stringstream stream(buffer);
+    // Split command from client into tokens for parsing
+    stringstream stream(buffer);
 
-  while(stream >> token)
+    while(stream >> token)
       tokens.push_back(token);
 
-  if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2))
-  {
-     clients[clientSocket]->name = tokens[1];
-  }
-  else if(tokens[0].compare("LEAVE") == 0)
-  {
-      // Close the socket, and leave the socket handling
-      // code to deal with tidying up clients etc. when
-      // select() detects the OS has torn down the connection.
- 
-      closeClient(clientSocket, openSockets, maxfds);
-  }
-  else if(tokens[0].compare("WHO") == 0)
-  {
-     std::cout << "Who is logged on" << std::endl;
-     std::string msg;
+    // while(getline(stream, token, ','))
+    // {
+    //     tokens.push_back(token);
+    // }
+    
+    if(tokens[0].compare("LISTSERVERS") == 0 && tokens.size() == 2)
+    {
+        
+    }
 
-     for(auto const& names : clients)
-     {
-        msg += names.second->name + ",";
+    else if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2))
+    {
+        clients[clientSocket]->name = tokens[1];
+    }
+    else if(tokens[0].compare("LEAVE") == 0)
+    {
+        // Close the socket, and leave the socket handling
+        // code to deal with tidying up clients etc. when
+        // select() detects the OS has torn down the connection.
 
-     }
-     // Reducing the msg length by 1 loses the excess "," - which
-     // granted is totally cheating.
-     send(clientSocket, msg.c_str(), msg.length()-1, 0);
+        closeClient(clientSocket, openSockets, maxfds);
+    }
+    else if(tokens[0].compare("WHO") == 0)
+    {
+        cout << "Who is logged on" << endl;
+        string msg;
 
-  }
-  // This is slightly fragile, since it's relying on the order
-  // of evaluation of the if statement.
-  else if((tokens[0].compare("MSG") == 0) && (tokens[1].compare("ALL") == 0))
-  {
-      std::string msg;
-      for(auto i = tokens.begin()+2;i != tokens.end();i++) 
-      {
-          msg += *i + " ";
-      }
+        for(auto const& names : clients)
+        {
+            msg += names.second->name + ",";
+        }
+        // Reducing the msg length by 1 loses the excess "," - which
+        // granted is totally cheating.
+        send(clientSocket, msg.c_str(), msg.length(), 0);
 
-      for(auto const& pair : clients)
-      {
-          send(pair.second->sock, msg.c_str(), msg.length(),0);
-      }
-  }
-  else if(tokens[0].compare("MSG") == 0)
-  {
-      for(auto const& pair : clients)
-      {
-          if(pair.second->name.compare(tokens[1]) == 0)
-          {
-              std::string msg;
-              for(auto i = tokens.begin()+2;i != tokens.end();i++) 
-              {
-                  msg += *i + " ";
-              }
-              send(pair.second->sock, msg.c_str(), msg.length(),0);
-          }
-      }
-  }
-  else
-  {
-      std::cout << "Unknown command from client:" << buffer << std::endl;
-  }
-     
+    }
+    // This is slightly fragile, since it's relying on the order
+    // of evaluation of the if statement.
+    else if((tokens[0].compare("MSG") == 0) && (tokens[1].compare("ALL") == 0))
+    {
+        string msg;
+        for(auto i = tokens.begin()+2;i != tokens.end();i++) 
+        {
+            msg += *i + " ";
+        }
+
+        for(auto const& pair : clients)
+        {
+            send(pair.second->sock, msg.c_str(), msg.length(),0);
+        }
+    }
+    else if(tokens[0].compare("MSG") == 0)
+    {
+        for(auto const& pair : clients)
+        {
+            if(pair.second->name.compare(tokens[1]) == 0)
+            {
+                string msg;
+                for(auto i = tokens.begin()+2;i != tokens.end();i++) 
+                {
+                    msg += *i + " ";
+                }
+                send(pair.second->sock, msg.c_str(), msg.length(),0);
+            }
+        }
+    }
+    else
+    {
+        cout << "Unknown command from client:" << buffer << endl;
+    }
 }
 
 int main(int argc, char* argv[])
@@ -230,18 +240,59 @@ int main(int argc, char* argv[])
     int maxfds;                     // Passed to select() as max fd in set
     struct sockaddr_in client;
     socklen_t clientLen;
-    char buffer[1025];              // buffer for reading from clients
+    char buffer[1025];              // buffer for reading from clients            
 
-    if(argc != 2)
+    if(argc != 4)
     {
-        printf("Usage: chat_server <ip port>\n");
+        printf("Usage: ./tsamvgroup6 <port i am listening to> <ip address i want to connect to> <port i want to connect to>\n");
         exit(0);
+    }
+
+    string ip = argv[2];
+    int port = atoi(argv[3]);
+    int botSock;
+
+    // Create socket
+    if ((botSock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        cerr << "Failed to open socket" << endl;
+        close(botSock);
+        return -1;
+    }
+
+    // Set type of connection
+    sockaddr_in server_address;
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(port);
+    inet_pton(AF_INET, ip.c_str(), &server_address.sin_addr);
+
+    if (connect(botSock, (sockaddr*)&server_address, sizeof(server_address)) < 0)
+    {
+        cerr << "Can't connect to server" << endl;
+        close(botSock);
+        return -2;
     }
 
     // Setup socket for server to listen to
 
-    listenSock = open_socket(atoi(argv[1])); 
+    listenSock = open_socket(atoi(argv[1]));
     printf("Listening on port: %d\n", atoi(argv[1]));
+
+    
+
+    // Set type of connection
+    // sockaddr_in server_address;
+    // server_address.sin_family = AF_INET;
+    // server_address.sin_port = htons(port);
+    // inet_pton(AF_INET, ip.c_str(), &server_address.sin_addr);
+
+    // // Connect to server
+    // if (connect(botSock, (sockaddr*)&server_address, sizeof(server_address)) < 0)
+    // {
+    //     cerr << "Can't connect to server" << endl;
+    //     close(botSock);
+    //     return -2;
+    // }
 
     if(listen(listenSock, BACKLOG) < 0)
     {
@@ -284,7 +335,7 @@ int main(int argc, char* argv[])
                FD_SET(clientSock, &openSockets);
 
                // And update the maximum file descriptor
-               maxfds = std::max(maxfds, clientSock) ;
+               maxfds = max(maxfds, clientSock) ;
 
                // create a new client to store information.
                clients[clientSock] = new Client(clientSock);
@@ -306,7 +357,7 @@ int main(int argc, char* argv[])
                       // recv() == 0 means client has closed connection
                       if(recv(client->sock, buffer, sizeof(buffer), MSG_DONTWAIT) == 0)
                       {
-                          printf("Client closed connection: %d", client->sock);
+                          printf("Client closed connection: %d\n", client->sock);
                           close(client->sock);      
 
                           closeClient(client->sock, &openSockets, &maxfds);
@@ -316,9 +367,8 @@ int main(int argc, char* argv[])
                       // only triggers if there is something on the socket for us.
                       else
                       {
-                          std::cout << buffer << std::endl;
-                          clientCommand(client->sock, &openSockets, &maxfds, 
-                                        buffer);
+                            cout << buffer << endl;
+                            clientCommand(client->sock, &openSockets, &maxfds, buffer);
                       }
                   }
                }
