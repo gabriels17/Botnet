@@ -50,7 +50,6 @@ void listenServer(int serverSocket)
        {
           printf("%s\n", buffer);
        }
-       printf("here\n");
     }
 }
 

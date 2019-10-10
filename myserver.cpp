@@ -162,9 +162,12 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
     //     tokens.push_back(token);
     // }
     
-    if(tokens[0].compare("LISTSERVERS") == 0 && tokens.size() == 2)
+    if(tokens[0].compare("LISTSERVERS") == 0)
     {
-        
+        string msg = "\x01LISTSERVERS,V_GROUP_6\x04";
+        send(clients[clientSocket]->sock, msg.c_str(), msg.length() + 1, 0);
+        //recv(clients[clientSocket]->sock, buffer, sizeof(buffer), 0);
+        cout << buffer << endl;
     }
 
     else if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2))
@@ -176,7 +179,7 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
         // Close the socket, and leave the socket handling
         // code to deal with tidying up clients etc. when
         // select() detects the OS has torn down the connection.
-
+        
         closeClient(clientSocket, openSockets, maxfds);
     }
     else if(tokens[0].compare("WHO") == 0)
@@ -190,7 +193,7 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
         }
         // Reducing the msg length by 1 loses the excess "," - which
         // granted is totally cheating.
-        send(clientSocket, msg.c_str(), msg.length(), 0);
+        send(clientSocket, msg.c_str(), msg.length() - 1, 0);
 
     }
     // This is slightly fragile, since it's relying on the order
@@ -277,22 +280,6 @@ int main(int argc, char* argv[])
 
     listenSock = open_socket(atoi(argv[1]));
     printf("Listening on port: %d\n", atoi(argv[1]));
-
-    
-
-    // Set type of connection
-    // sockaddr_in server_address;
-    // server_address.sin_family = AF_INET;
-    // server_address.sin_port = htons(port);
-    // inet_pton(AF_INET, ip.c_str(), &server_address.sin_addr);
-
-    // // Connect to server
-    // if (connect(botSock, (sockaddr*)&server_address, sizeof(server_address)) < 0)
-    // {
-    //     cerr << "Can't connect to server" << endl;
-    //     close(botSock);
-    //     return -2;
-    // }
 
     if(listen(listenSock, BACKLOG) < 0)
     {

@@ -306,7 +306,7 @@ int main(int argc, char* argv[])
                       // recv() == 0 means client has closed connection
                       if(recv(client->sock, buffer, sizeof(buffer), MSG_DONTWAIT) == 0)
                       {
-                          printf("Client closed connection: %d", client->sock);
+                          printf("Client closed connection: %d\n", client->sock);
                           close(client->sock);      
 
                           closeClient(client->sock, &openSockets, &maxfds);
