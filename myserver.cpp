@@ -41,30 +41,30 @@ using namespace std;
 // Client(int socket) - socket to send/receive traffic from client.
 class Client
 {
-  public:
-    int sock;              // socket of client connection
-    string name;           // Limit length of name of client's user
+    public:
+        int sock;              // socket of client connection
+        string name;           // Limit length of name of client's user
 
-    Client(int socket) : sock(socket){} 
+        Client(int socket) : sock(socket){} 
 
-    ~Client(){}            // Virtual destructor defined for base class
+        ~Client(){}            // Virtual destructor defined for base class
 };
 
 class Server
 {
-  public:
-    int sock;              // socket of client connection
-    string ip;
-    int port;
+    public:
+        int sock;              // socket of client connection
+        string ip;
+        int port;
 
-    Server(int socket, string ip, int port)
-    {
-        sock = socket;
-        this->ip = ip;
-        this->port = port;
-    } 
+        Server(int socket, string ip, int port)
+        {
+            sock = socket;
+            this->ip = ip;
+            this->port = port;
+        } 
 
-    ~Server(){}            // Virtual destructor defined for base class
+        ~Server(){}            // Virtual destructor defined for base class
 };
 
 // Note: map is not necessarily the most efficient method to use here,
@@ -176,7 +176,6 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
     size_t found = str.find(',');
 
     if(found == string::npos) {
-        cout << "not found" << endl;
         while(stream >> token) {
             tokens.push_back(token);
         }
@@ -213,7 +212,7 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
     {
         clients[clientSocket]->name = tokens[1];
     }
-    
+
     else if(tokens[0].compare("LEAVE") == 0)
     {
         // Close the socket, and leave the socket handling
