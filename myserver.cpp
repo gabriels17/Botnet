@@ -50,6 +50,23 @@ class Client
     ~Client(){}            // Virtual destructor defined for base class
 };
 
+class Server
+{
+  public:
+    int sock;              // socket of client connection
+    string ip;
+    int port;
+
+    Server(int socket, string ip, int port)
+    {
+        sock = socket;
+        this->ip = ip;
+        this->port = port;
+    } 
+
+    ~Server(){}            // Virtual destructor defined for base class
+};
+
 // Note: map is not necessarily the most efficient method to use here,
 // especially for a server with large numbers of simulataneous connections,
 // where performance is also expected to be an issue.
@@ -58,6 +75,7 @@ class Client
 // (indexed on socket no.) sacrificing memory for speed.
 
 map<int, Client*> clients; // Lookup table for per Client information
+map<int, Server*> servers; // Lookup table for per Client information
 
 // Open socket for specified port.
 //
@@ -152,21 +170,42 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
     string token;
 
     // Split command from client into tokens for parsing
+    string str = buffer;
     stringstream stream(buffer);
 
-    while(stream >> token)
-      tokens.push_back(token);
+    size_t found = str.find(',');
 
-    // while(getline(stream, token, ','))
-    // {
-    //     tokens.push_back(token);
-    // }
-    
-    if(tokens[0].compare("LISTSERVERS") == 0)
+    if(found == string::npos) {
+        cout << "not found" << endl;
+        while(stream >> token) {
+            tokens.push_back(token);
+        }
+    }
+    else {
+        while(getline(stream, token, ',')) {
+            tokens.push_back(token);
+        }
+    }
+
+    if((tokens[0].compare("\x01LISTSERVERS") == 0))
+    {
+        string msg = "Hello";    
+        send(clientSocket, msg.c_str(), msg.length() + 1, 0);                      
+    }
+
+    else if(tokens[0].compare("LISTSERVERS") == 0)
     {
         string msg = "\x01LISTSERVERS,V_GROUP_6\x04";
-        send(clients[clientSocket]->sock, msg.c_str(), msg.length() + 1, 0);
-        //recv(clients[clientSocket]->sock, buffer, sizeof(buffer), 0);
+        
+        for(auto const& pair : servers)
+        {
+            Server *server = pair.second;
+            //printf("New connection, socket fd is %d , ip is : %s , port : %d\n" , server->sock, server->myip.c_str(), server->myport);
+
+            send(server->sock, msg.c_str(), msg.length() + 1, 0);
+            recv(server->sock, buffer, sizeof(buffer), 0);
+        }
+                      
         cout << buffer << endl;
     }
 
@@ -174,6 +213,7 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
     {
         clients[clientSocket]->name = tokens[1];
     }
+    
     else if(tokens[0].compare("LEAVE") == 0)
     {
         // Close the socket, and leave the socket handling
@@ -264,10 +304,10 @@ int main(int argc, char* argv[])
     }
 
     // Set type of connection
-    sockaddr_in server_address;
+    struct sockaddr_in server_address;
     server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(port);
     inet_pton(AF_INET, ip.c_str(), &server_address.sin_addr);
+    server_address.sin_port = htons(port);
 
     if (connect(botSock, (sockaddr*)&server_address, sizeof(server_address)) < 0)
     {
@@ -275,6 +315,8 @@ int main(int argc, char* argv[])
         close(botSock);
         return -2;
     }
+
+    servers[botSock] = new Server(botSock, ip, port);
 
     // Setup socket for server to listen to
 
@@ -284,6 +326,7 @@ int main(int argc, char* argv[])
     if(listen(listenSock, BACKLOG) < 0)
     {
         printf("Listen failed on port %s\n", argv[1]);
+        close(listenSock);
         exit(0);
     }
     else 
