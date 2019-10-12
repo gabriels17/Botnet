@@ -188,14 +188,27 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
 
     if((tokens[0].compare("\x01LISTSERVERS") == 0))
     {
-        string msg = "Hello";    
-        send(clientSocket, msg.c_str(), msg.length() + 1, 0);                      
+        int counter = 1;
+        string msg = "SERVERS,";
+        cout << clients.size() << endl;
+
+        for (auto const& client : clients) {
+            client.second->name = "P3_GROUP_" + to_string(counter);
+            counter++;  
+        }
+
+        for(auto const& names : clients)
+        {
+            cout << names.second->name << endl;
+            msg += names.second->name + ",";
+        }
+        cout << msg;
+        send(clientSocket, msg.c_str(), msg.length(), 0);                    
     }
 
     else if(tokens[0].compare("LISTSERVERS") == 0)
     {
-        string msg = "\x01LISTSERVERS,V_GROUP_6\x04";
-        
+        string msg = "\x01LISTSERVERS,P3_GROUP_6\x04";
         for(auto const& pair : servers)
         {
             Server *server = pair.second;
@@ -203,9 +216,10 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
 
             send(server->sock, msg.c_str(), msg.length() + 1, 0);
             recv(server->sock, buffer, sizeof(buffer), 0);
+            send(clientSocket, buffer, sizeof(buffer), 0);
         }
                       
-        cout << buffer << endl;
+        //cout << buffer << endl;
     }
 
     else if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2))
