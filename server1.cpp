@@ -71,14 +71,6 @@ class Server
             this->port = port;
         } 
 
-        Server(int socket, string name, string ip, int port)
-        {
-            sock = socket;
-            this->name = name;
-            this->ip = ip;
-            this->port = port;
-        } 
-
         ~Server(){}            // Virtual destructor defined for base class
 };
 
@@ -97,7 +89,7 @@ map<int, Server*> servers; // Lookup table for per Client information
 // Returns -1 if unable to create the socket for any reason.
 
 int open_socket(int portno)
-{
+    {
     struct sockaddr_in sk_addr;   // address settings for bind()
     int sock;                     // socket opened for this port
     int set = 1;                  // for setsockopt
@@ -280,28 +272,23 @@ void clientCommand(int sock, fd_set *openSockets, int *maxfds, char *buffer)
 
         //cout << buffer << endl;
     }
-    else if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3))
+    else if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 4))
     {
-        int newsock;
-        if((newsock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        {
-            perror("Failed to open socket");
-            // return(-1);
-        }
+        cout << "doing some work" << endl;
+        int newsock = open_socket(stoi(tokens[3]));
+        cout << "doing some work" << endl;
 
         struct sockaddr_in new_addr;
         new_addr.sin_family      = AF_INET;
-        new_addr.sin_addr.s_addr = inet_addr(tokens[1].c_str());
-        new_addr.sin_port        = htons(stoi(tokens[2]));
-        
+        new_addr.sin_addr.s_addr = inet_addr(tokens[2].c_str());
+        new_addr.sin_port        = htons(stoi(tokens[3]));
         if (connect(newsock, (sockaddr*)&new_addr, sizeof(new_addr)) < 0) {
-            perror("Failed to connect");
+            perror("Failed to connect:");
         }
         else 
         {
             // Great success
-            string name = "P3_GROUP_6";
-            servers[newsock] = new Server(newsock, name, tokens[1], stoi(tokens[2]));
+            servers[newsock] = new Server(newsock, tokens[2], stoi(tokens[3]));
         }
     }
     else if(tokens[0].compare("LEAVE") == 0)
@@ -312,21 +299,21 @@ void clientCommand(int sock, fd_set *openSockets, int *maxfds, char *buffer)
         
         closeClient(sock, openSockets, maxfds);
     }
-    // else if(tokens[0].compare("WHO") == 0)
-    // {
-    //     cout << "Who is logged on" << endl;
-    //     string msg;
+    else if(tokens[0].compare("WHO") == 0)
+    {
+        cout << "Who is logged on" << endl;
+        string msg;
 
-    //     for(auto const& names : clients)
-    //     {
-    //         msg += names.second->name + ",";
-    //     }
+        /*for(auto const& names : clients)
+        {
+            msg += names.second->name + ",";
+        }*/
 
-    //     // Reducing the msg length by 1 loses the excess "," - which
-    //     // granted is totally cheating.
-    //     send(sock, msg.c_str(), msg.length() - 1, 0);
+        // Reducing the msg length by 1 loses the excess "," - which
+        // granted is totally cheating.
+        send(sock, msg.c_str(), msg.length() - 1, 0);
 
-    // }
+    }
     // This is slightly fragile, since it's relying on the order
     // of evaluation of the if statement.
     else if((tokens[0].compare("MSG") == 0) && (tokens[1].compare("ALL") == 0))
@@ -379,41 +366,13 @@ int main(int argc, char* argv[])
     socklen_t serverLen;
     char buffer[1025];              // buffer for reading from clients            
 
-    if(argc != 5)
+    if(argc != 3)
     {
-        printf("Usage: ./tsamvgroup6 <server port i am listening to> <client port i am listening to> <ip address i want to connect to> <port i want to connect to>\n");
+        printf("Usage: ./tsamvgroup6 <server port i am listening to> <client port i am listening to> \n");
         exit(0);
     }
 
-    string server_ip = argv[3];
-    int server_port = atoi(argv[4]);
-    int botSock;
-
-    // Create socket
-    if ((botSock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        cerr << "Failed to open socket" << endl;
-        close(botSock);
-        return -1;
-    }
-
-    // Set type of connection
-    struct sockaddr_in server_address;
-    server_address.sin_family = AF_INET;
-    inet_pton(AF_INET, server_ip.c_str(), &server_address.sin_addr);
-    server_address.sin_port = htons(server_port);
-
-    if (connect(botSock, (sockaddr*)&server_address, sizeof(server_address)) < 0)
-    {
-        cerr << "Can't connect to server" << endl;
-        close(botSock);
-        return -2;
-    }
-
-    servers[botSock] = new Server(botSock, server_ip, server_port);
-
     // Setup socket for server to listen to
-
     serverSock = open_socket(atoi(argv[1]));
     clientSock = open_socket(atoi(argv[2]));
     printf("Listening for servers on port %d and clients on port %d\n", atoi(argv[1]), atoi(argv[2]));
