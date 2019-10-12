@@ -74,3 +74,6 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.gitignore.io/api/c++,windows,visualstudiocode
+ip
+client
+tsamvgroup6
