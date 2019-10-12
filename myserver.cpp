@@ -43,9 +43,16 @@ class Client
 {
     public:
         int sock;              // socket of client connection
-        string name;           // Limit length of name of client's user
+        string name;
+        string ip;
+        int port;           // Limit length of name of client's user
 
-        Client(int socket) : sock(socket){} 
+        Client(int socket/*, string ip, int port*/)
+        {
+            sock = socket;
+            // this->ip = ip;
+            // this->port = port;
+        } 
 
         ~Client(){}            // Virtual destructor defined for base class
 };
@@ -188,19 +195,20 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
 
     if((tokens[0].compare("\x01LISTSERVERS") == 0))
     {
-        int counter = 1;
+        //int counter = 1;
         string msg = "SERVERS,";
-        cout << clients.size() << endl;
+        //cout << clients.size() << endl;
 
-        for (auto const& client : clients) {
-            client.second->name = "P3_GROUP_" + to_string(counter);
-            counter++;  
-        }
+        // for (auto const& client : clients) {
+        //     client.second->name = "P3_GROUP_" + to_string(counter);
+        //     counter++;  
+        // }
 
-        for(auto const& names : clients)
+        for(auto const& client : clients)
         {
-            cout << names.second->name << endl;
-            msg += names.second->name + ",";
+            cout << client.second->name << endl;
+            
+            msg += client.second->name + "," + client.second->ip + "," + to_string(client.second->port) + ";";
         }
         cout << msg;
         send(clientSocket, msg.c_str(), msg.length(), 0);                    
@@ -304,8 +312,8 @@ int main(int argc, char* argv[])
         exit(0);
     }
 
-    string ip = argv[2];
-    int port = atoi(argv[3]);
+    string server_ip = argv[2];
+    int server_port = atoi(argv[3]);
     int botSock;
 
     // Create socket
@@ -319,8 +327,8 @@ int main(int argc, char* argv[])
     // Set type of connection
     struct sockaddr_in server_address;
     server_address.sin_family = AF_INET;
-    inet_pton(AF_INET, ip.c_str(), &server_address.sin_addr);
-    server_address.sin_port = htons(port);
+    inet_pton(AF_INET, server_ip.c_str(), &server_address.sin_addr);
+    server_address.sin_port = htons(server_port);
 
     if (connect(botSock, (sockaddr*)&server_address, sizeof(server_address)) < 0)
     {
@@ -329,7 +337,7 @@ int main(int argc, char* argv[])
         return -2;
     }
 
-    servers[botSock] = new Server(botSock, ip, port);
+    servers[botSock] = new Server(botSock, server_ip, server_port);
 
     // Setup socket for server to listen to
 
@@ -371,22 +379,29 @@ int main(int argc, char* argv[])
             // First, accept  any new connections to the server on the listening socket
             if(FD_ISSET(listenSock, &readSockets))
             {
-               clientSock = accept(listenSock, (struct sockaddr *)&client,
+                clientSock = accept(listenSock, (struct sockaddr *)&client,
                                    &clientLen);
-               printf("accept***\n");
-               // Add new client to the list of open sockets
-               FD_SET(clientSock, &openSockets);
+                cout << "clientSock before: " << clientSock << endl;;
+                struct in_addr client_ip = client.sin_addr;
+                char ip_str[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &client_ip, ip_str, INET_ADDRSTRLEN);
+                int client_port = client.sin_port;
+                cout << "clientSock after: " << clientSock << endl;
 
-               // And update the maximum file descriptor
-               maxfds = max(maxfds, clientSock) ;
+                printf("accept***\n");
+                // Add new client to the list of open sockets
+                FD_SET(clientSock, &openSockets);
 
-               // create a new client to store information.
-               clients[clientSock] = new Client(clientSock);
+                // And update the maximum file descriptor
+                maxfds = max(maxfds, clientSock);
 
-               // Decrement the number of sockets waiting to be dealt with
-               n--;
+                // create a new client to store information.
+                clients[clientSock] = new Client(clientSock/*, ip_str, client_port*/);
 
-               printf("Client connected on server: %d\n", clientSock);
+                // Decrement the number of sockets waiting to be dealt with
+                n--;
+
+                printf("Client connected on server: %d\n", clientSock);
             }
             // Now check for commands from clients
             while(n-- > 0)
