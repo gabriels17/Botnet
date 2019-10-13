@@ -1,9 +1,9 @@
 //
-// Simple chat server for TSAM-409
+// Not so simple botnet server for TSAM-409
 //
-// Command line: ./chat_server 4000 
+// Command line: ./tsamvgroup6 <client-port> <server-port>
 //
-// Author: Jacky Mallett (jacky@ru.is)
+// Authors: Gabríel Sighvatsson (gabriels17@ru.is) & Karl Bachmann (karl19@ru.is)
 //
 #include <stdio.h>
 #include <errno.h>
@@ -17,14 +17,11 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <string.h>
-#include <algorithm>
 #include <map>
-#include <vector>
-
 #include <iostream>
 #include <sstream>
 #include <thread>
-#include <map>
+#include <vector>
 
 using namespace std;
 
