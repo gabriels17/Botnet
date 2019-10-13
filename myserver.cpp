@@ -207,14 +207,17 @@ string get_my_ip()
     char buf[64];
     string output = "BATMAN!";
 
+    // get every ip address and put them in a linked list
     if(getifaddrs(&myaddrs) != 0)
     {
         perror("getifaddrs");
         exit(1);
     }
 
+    // for every ip address in the linked list
     for (ifa = myaddrs; ifa != NULL; ifa = ifa->ifa_next)
     {
+        // safety checks
         if (ifa->ifa_addr == NULL)
             continue;
         if (!(ifa->ifa_flags & IFF_UP))
@@ -222,6 +225,7 @@ string get_my_ip()
 
         switch (ifa->ifa_addr->sa_family)
         {
+            // if its IPv4 then we look further
             case AF_INET:
             {
                 struct sockaddr_in *s4 = (struct sockaddr_in *)ifa->ifa_addr;
@@ -236,14 +240,18 @@ string get_my_ip()
             default:
                 continue;
         }
-        
+
+        // we put our IPv4 into char buffer for output
         if (!inet_ntop(ifa->ifa_addr->sa_family, in_addr, buf, sizeof(buf)))
         {
             printf("%s: inet_ntop failed!\n", ifa->ifa_name);
         }
+        // make sure we aren't looking at localhost
         else if (string(buf).compare("127.0.0.1") != 0)
         {
+            // this assumes there are at most two ip addresses and that one of them is localhost
             output = string(buf);
+            break;
         }
     }
 
