@@ -17,6 +17,11 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <string.h>
+
+#include <ifaddrs.h>
+#include <net/if.h>
+
+#include <algorithm>
 #include <map>
 #include <iostream>
 #include <sstream>
@@ -193,6 +198,57 @@ void closeServer(int serverSocket, fd_set *openSockets, int *maxfds)
     // And remove from the list of open sockets.
 
     FD_CLR(serverSocket, openSockets);
+}
+
+string get_my_ip()
+{
+    struct ifaddrs *myaddrs, *ifa;
+    void *in_addr;
+    char buf[64];
+    string output = "BATMAN!";
+
+    if(getifaddrs(&myaddrs) != 0)
+    {
+        perror("getifaddrs");
+        exit(1);
+    }
+
+    for (ifa = myaddrs; ifa != NULL; ifa = ifa->ifa_next)
+    {
+        if (ifa->ifa_addr == NULL)
+            continue;
+        if (!(ifa->ifa_flags & IFF_UP))
+            continue;
+
+        switch (ifa->ifa_addr->sa_family)
+        {
+            case AF_INET:
+            {
+                struct sockaddr_in *s4 = (struct sockaddr_in *)ifa->ifa_addr;
+                in_addr = &s4->sin_addr;
+                break;
+            }
+            // we are not interested in IPv6 (sorry...)
+            case AF_INET6:
+            {
+                continue;
+            }
+            default:
+                continue;
+        }
+        
+        if (!inet_ntop(ifa->ifa_addr->sa_family, in_addr, buf, sizeof(buf)))
+        {
+            printf("%s: inet_ntop failed!\n", ifa->ifa_name);
+        }
+        else if (string(buf).compare("127.0.0.1") != 0)
+        {
+            output = string(buf);
+        }
+    }
+
+    freeifaddrs(myaddrs);
+    return output;
 }
 
 void serverCommand(int sock, fd_set *openSockets, int *maxfds, string msg) 
