@@ -1,7 +1,7 @@
 To compile:
 
-g++ -std=c++11 client.cpp -lpthread -o client
-g++ -std=c+=11 server.cpp o server
+    g++ -std=c++11 client.cpp -lpthread -o client
+    g++ -std=c+=11 server.cpp o server
 
 To run (on same machine):
 
@@ -11,7 +11,7 @@ To run (on same machine):
 
 Commands on client:
 
-CONNECT <name>   : Connect to server as <name>
-WHO              : Show connections to server
-MSG <name> <message> : Send message to name
-MSG ALL <message>    : Send message to all connected
+- CONNECT <name>   : Connect to server as <name>
+- WHO              : Show connections to server
+- MSG <name> <message> : Send message to name
+- MSG ALL <message>    : Send message to all connected
