@@ -198,44 +198,31 @@ void closeServer(int serverSocket, fd_set *openSockets, int *maxfds)
     FD_CLR(serverSocket, openSockets);
 }
 
-void serverCommand(int sock, fd_set *openSockets, int *maxfds, char *buffer) 
+void serverCommand(int sock, fd_set *openSockets, int *maxfds, string msg) 
 {
     vector<string> tokens;
     string token;
 
     // Split command from client into tokens for parsing
-    stringstream stream(buffer);
+    stringstream stream(msg);
 
-    while(getline(stream, token, ',')) {
+    while(getline(stream, token, ','))
+    {
         tokens.push_back(token);
     }
 
     if((tokens[0].compare("\x01LISTSERVERS") == 0))
     {
         string msg = "SERVERS,";
-        //cout << clients.size() << endl;
 
-        for (auto const& server : servers) {
+        for (auto const& server : servers)
+        {
             // server.second->name = "P3_GROUP_";
-            if (server.second->name.length() != 0) {
+            if (server.second->name.length() != 0)
+            {
                 msg += server.second->name + "," + server.second->ip + "," + to_string(server.second->port) + ";";
             }
         }
-
-        // cout << clients.size() << "..." << endl;
-        /*for(auto const& client : clients)
-        {
-            // cout << client.first << "..." << endl;
-            // cout << client.second << "..." << endl;
-            cout << client.second->ip << "..." << endl;
-            cout << client.second->port << "..." << endl;
-            
-            msg += client.second->ip + "," + to_string(client.second->port) + ";";
-        }*/
-
-        // cout << msg.c_str() << endl;
-        // cout << msg.length() << endl;
-
         send(sock, msg.c_str(), msg.length(), 0);
     }
 }
@@ -266,7 +253,7 @@ void clientCommand(int sock, fd_set *openSockets, int *maxfds, char *buffer)
     if(tokens[0].compare("LISTSERVERS") == 0)
     {
         string msg = "\x01LISTSERVERS,P3_GROUP_6\x04";
-        serverCommand(sock, openSockets, maxfds, buffer);
+        serverCommand(sock, openSockets, maxfds, msg);
 
         /*for(auto const& pair : servers)
         {
@@ -379,41 +366,13 @@ int main(int argc, char* argv[])
     socklen_t serverLen;
     char buffer[1025];              // buffer for reading from clients            
 
-    if(argc != 5)
+    if(argc != 3)
     {
-        printf("Usage: ./tsamvgroup6 <server port i am listening to> <client port i am listening to> <ip address i want to connect to> <port i want to connect to>\n");
+        printf("Usage: ./tsamvgroup6 <server port i am listening to> <client port i am listening to>\n");
         exit(0);
     }
 
-    string server_ip = argv[3];
-    int server_port = atoi(argv[4]);
-    int botSock;
-
-    // Create socket
-    if ((botSock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        cerr << "Failed to open socket" << endl;
-        close(botSock);
-        return -1;
-    }
-
-    // Set type of connection
-    struct sockaddr_in server_address;
-    server_address.sin_family = AF_INET;
-    inet_pton(AF_INET, server_ip.c_str(), &server_address.sin_addr);
-    server_address.sin_port = htons(server_port);
-
-    if (connect(botSock, (sockaddr*)&server_address, sizeof(server_address)) < 0)
-    {
-        cerr << "Can't connect to server" << endl;
-        close(botSock);
-        return -2;
-    }
-
-    servers[botSock] = new Server(botSock, server_ip, server_port);
-
-    // Setup socket for server to listen to
-
+    // Setup sockets for server to listen on
     serverSock = open_socket(atoi(argv[1]));
     clientSock = open_socket(atoi(argv[2]));
     printf("Listening for servers on port %d and clients on port %d\n", atoi(argv[1]), atoi(argv[2]));
