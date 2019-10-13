@@ -291,13 +291,25 @@ void clientCommand(int sock, fd_set *openSockets, int *maxfds, char *buffer)
             servers[newsock] = new Server(newsock, name, tokens[1], stoi(tokens[2]));
         }
     }
-    else if(tokens[0].compare("LEAVE") == 0)
+    else if(tokens[0].compare("LEAVE") == 0 && tokens.size() == 3)
     {
+        string ip = tokens[1];
+        int port = stoi(tokens[2]);
+        int sock;
+        
+        for (auto const& server : servers) {
+            if (server.second->ip == ip && server.second->port == port)
+            {
+                cout << "Found a server hosted on: " << ip << ":" << port << endl;
+                sock = server.second->sock;
+            }
+        }
+
         // Close the socket, and leave the socket handling
         // code to deal with tidying up clients etc. when
         // select() detects the OS has torn down the connection.
         
-        closeClient(sock, openSockets, maxfds);
+        closeServer(sock, openSockets, maxfds);
     }
     // else if(tokens[0].compare("WHO") == 0)
     // {
@@ -505,27 +517,27 @@ int main(int argc, char* argv[])
                     }
                 }
 
-                // for(auto const& pair : servers)
-                // {
-                //     Server *server = pair.second;
-                //     if(FD_ISSET(server->sock, &readSockets))
-                //     {
-                //         // recv() == 0 means server has closed connection
-                //         if(recv(server->sock, buffer, sizeof(buffer), MSG_DONTWAIT) == 0)
-                //         {
-                //             printf("server closed connection: %d\n", server->sock);
-                //             close(server->sock);
-                //             closeServer(server->sock, &openSockets, &maxfds);
-                //         }
-                //         // We don't check for -1 (nothing received) because select()
-                //         // only triggers if there is something on the socket for us.
-                //         else
-                //         {
-                //             cout << buffer << endl;
-                //             clientCommand(server->sock, &openSockets, &maxfds, buffer);
-                //         }
-                //     }
-                // }
+                for(auto const& pair : servers)
+                {
+                    Server *server = pair.second;
+                    if(FD_ISSET(server->sock, &readSockets))
+                    {
+                        // recv() == 0 means server has closed connection
+                        if(recv(server->sock, buffer, sizeof(buffer), MSG_DONTWAIT) == 0)
+                        {
+                            printf("Server closed connection: %d\n", server->sock);
+                            close(server->sock);
+                            closeServer(server->sock, &openSockets, &maxfds);
+                        }
+                        // We don't check for -1 (nothing received) because select()
+                        // only triggers if there is something on the socket for us.
+                        // else
+                        // {
+                        //     cout << buffer << endl;
+                        //     clientCommand(server->sock, &openSockets, &maxfds, buffer);
+                        // }
+                    }
+                }
             }
         }
     }
