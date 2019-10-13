@@ -251,7 +251,7 @@ string get_my_ip()
     return output;
 }
 
-void serverCommand(int sock, fd_set *openSockets, int *maxfds, string msg) 
+vector<string> parseTokens(string msg, char delim)
 {
     vector<string> tokens;
     string token;
@@ -259,14 +259,37 @@ void serverCommand(int sock, fd_set *openSockets, int *maxfds, string msg)
     // Split command from client into tokens for parsing
     stringstream stream(msg);
 
-    while(getline(stream, token, ','))
-    {
-        tokens.push_back(token);
+    size_t found = msg.find(delim);
+
+    // If the specified delimiter is not found, the found variable will be equal to the const npos or -1
+    // Then parse by whitespace
+    if(found == string::npos) {
+        while(stream >> token) {
+            tokens.push_back(token);
+        }
     }
+    // If a delimeter was found parse by that delimeter
+    else {
+        while(getline(stream, token, delim)) {
+            tokens.push_back(token);
+        }
+    }
+    for (unsigned int i = 0; i < tokens.size(); i++)
+    {
+        cout << tokens[i] << " ";
+    }
+    cout << endl;
+
+    return tokens;
+}
+
+void serverCommand(int sock, fd_set *openSockets, int *maxfds, string msg, int myPort) 
+{
+    vector<string> tokens = parseTokens(msg, ',');
 
     if((tokens[0].compare("\x01LISTSERVERS") == 0))
     {
-        string msg = "SERVERS,";
+        string msg = "SERVERS,P3_GROUP_6," + get_my_ip() + "," + to_string(myPort);
 
         for (auto const& server : servers)
         {
@@ -281,32 +304,14 @@ void serverCommand(int sock, fd_set *openSockets, int *maxfds, string msg)
 }
 
 // Process command from client on the server
-void clientCommand(int sock, fd_set *openSockets, int *maxfds, char *buffer) 
+void clientCommand(int sock, fd_set *openSockets, int *maxfds, char *buffer, int myPort) 
 {
-    vector<string> tokens;
-    string token;
-
-    // Split command from client into tokens for parsing
-    string str = buffer;
-    stringstream stream(buffer);
-
-    size_t found = str.find(',');
-
-    if(found == string::npos) {
-        while(stream >> token) {
-            tokens.push_back(token);
-        }
-    }
-    else {
-        while(getline(stream, token, ',')) {
-            tokens.push_back(token);
-        }
-    }
+    vector<string> tokens = parseTokens(buffer, ',');
 
     if(tokens[0].compare("LISTSERVERS") == 0)
     {
         string msg = "\x01LISTSERVERS,P3_GROUP_6\x04";
-        serverCommand(sock, openSockets, maxfds, msg);
+        serverCommand(sock, openSockets, maxfds, msg, myPort);
 
         /*for(auto const& pair : servers)
         {
@@ -436,6 +441,7 @@ int main(int argc, char* argv[])
         printf("Usage: ./tsamvgroup6 <server port i am listening to> <client port i am listening to>\n");
         exit(0);
     }
+    cout << get_my_ip();
 
     // Setup sockets for server to listen on
     serverSock = open_socket(atoi(argv[1]));
@@ -491,15 +497,25 @@ int main(int argc, char* argv[])
             if(FD_ISSET(serverSock, &readSockets))
             {
                 connectionSock = accept(serverSock, (struct sockaddr *)&server, &serverLen);
-                // cout << "connectionSock before: " << connectionSock << endl;;
+                // We need to know who connected to us so we immediately send LISTSERVERS
+                string msg = "\x01LISTSERVERS,P3_GROUP_6\x04";
+                if (send(connectionSock, msg.c_str(), msg.length(), 0) < 0)
+                {
+                    perror("send failed");
+                }
                 
+                if (recv(connectionSock, buffer, sizeof(buffer), 0) < 0)
+                {
+                    perror("recv failed");
+                }
+
+                cout << buffer;
+            
                 struct in_addr server_addr = server.sin_addr;
                 char ip_str[INET_ADDRSTRLEN];
                 inet_ntop(AF_INET, &server_addr, ip_str, INET_ADDRSTRLEN);
                 int server_port = server.sin_port;
                 
-                // cout << "connectionSock after: " << connectionSock << endl;
-
                 printf("accept***\n");
                 // Add new server to the list of open sockets
                 FD_SET(connectionSock, &openSockets);
@@ -565,7 +581,7 @@ int main(int argc, char* argv[])
                         else
                         {
                             cout << buffer << endl;
-                            clientCommand(client->sock, &openSockets, &maxfds, buffer);
+                            clientCommand(client->sock, &openSockets, &maxfds, buffer, atoi(argv[1]));
                         }
                     }
                 }
