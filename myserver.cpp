@@ -316,7 +316,22 @@ void clientCommand(int sock, fd_set *openSockets, int *maxfds, char *buffer, int
 {
     vector<string> tokens = parseTokens(buffer, ',');
 
-    if(tokens[0].compare("LISTSERVERS") == 0)
+    if((tokens[0].compare("\x01LISTSERVERS") == 0))
+    {
+        string msg = "SERVERS,P3_GROUP_6," + get_my_ip() + "," + to_string(myPort);
+
+        for (auto const& server : servers)
+        {
+            // server.second->name = "P3_GROUP_";
+            if (server.second->name.length() != 0)
+            {
+                msg += server.second->name + "," + server.second->ip + "," + to_string(server.second->port) + ";";
+            }
+        }
+        send(sock, msg.c_str(), msg.length(), 0);
+    }
+
+    else if(tokens[0].compare("LISTSERVERS") == 0)
     {
         string msg = "\x01LISTSERVERS,P3_GROUP_6\x04";
         serverCommand(sock, openSockets, maxfds, msg, myPort);
@@ -377,21 +392,21 @@ void clientCommand(int sock, fd_set *openSockets, int *maxfds, char *buffer, int
         
         closeServer(sock, openSockets, maxfds);
     }
-    // else if(tokens[0].compare("WHO") == 0)
-    // {
-    //     cout << "Who is logged on" << endl;
-    //     string msg;
+    else if(tokens[0].compare("WHO") == 0)
+    {
+        cout << "Who is logged on" << endl;
+        string msg;
 
-    //     for(auto const& names : clients)
-    //     {
-    //         msg += names.second->name + ",";
-    //     }
+        for(auto const& names : servers)
+        {
+            msg += names.second->name + ",";
+        }
 
-    //     // Reducing the msg length by 1 loses the excess "," - which
-    //     // granted is totally cheating.
-    //     send(sock, msg.c_str(), msg.length() - 1, 0);
+        // Reducing the msg length by 1 loses the excess "," - which
+        // granted is totally cheating.
+        send(sock, msg.c_str(), msg.length() - 1, 0);
 
-    // }
+    }
     // This is slightly fragile, since it's relying on the order
     // of evaluation of the if statement.
     else if((tokens[0].compare("MSG") == 0) && (tokens[1].compare("ALL") == 0))
@@ -449,7 +464,7 @@ int main(int argc, char* argv[])
         printf("Usage: ./tsamvgroup6 <server port i am listening to> <client port i am listening to>\n");
         exit(0);
     }
-    cout << get_my_ip();
+    cout << get_my_ip() << endl;
 
     // Setup sockets for server to listen on
     serverSock = open_socket(atoi(argv[1]));
@@ -517,12 +532,13 @@ int main(int argc, char* argv[])
                     perror("recv failed");
                 }
 
-                cout << buffer;
-            
-                struct in_addr server_addr = server.sin_addr;
-                char ip_str[INET_ADDRSTRLEN];
-                inet_ntop(AF_INET, &server_addr, ip_str, INET_ADDRSTRLEN);
-                int server_port = server.sin_port;
+                cout << buffer << endl;
+
+                vector<string> tokens = parseTokens(buffer, ';');
+                vector<string> newTokens = parseTokens(tokens[0], ',');
+                string name = newTokens[1];
+                string ip_str = newTokens[2];
+                int server_port = stoi(tokens[3]);
                 
                 printf("accept***\n");
                 // Add new server to the list of open sockets
@@ -532,12 +548,12 @@ int main(int argc, char* argv[])
                 maxfds = max(maxfds, connectionSock);
 
                 // create a new server to store information.
-                servers[connectionSock] = new Server(connectionSock, ip_str, server_port);
+                servers[connectionSock] = new Server(connectionSock, name, ip_str, server_port);
 
                 // Decrement the number of sockets waiting to be dealt with
                 n--;
 
-                printf("Server connected from %s:%d\n", ip_str, server_port);
+                printf("Server connected from %s:%d\n", ip_str.c_str(), server_port);
             }
 
             // Second, accept any new client connections to the server on the listening socket
