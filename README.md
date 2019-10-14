@@ -1,17 +1,18 @@
+Our code was primarily compiled on a Windows machine in WSL the linux subsystem.
+
 To compile:
 
-    g++ -std=c++11 client.cpp -lpthread -o client
-    g++ -std=c+=11 server.cpp o server
+    make
 
-To run (on same machine):
+To run:
 
-    ./server 10000
-    ./client 127.0.0.1 10000
+    ./tsamvgroup6 <server-port> <client-port>
+    ./client <ipv4-of-server> <client-port-of-server>
 
 
-Commands on client:
+Client Commands:
 
-- CONNECT <name>   : Connect to server as <name>
-- WHO              : Show connections to server
-- MSG <name> <message> : Send message to name
-- MSG ALL <message>    : Send message to all connected
+- CONNECT,<name> : Connect to server as <name>
+- WHO : Lists connections
+- MSG,<group-name>,<message> : Send message to group
+- MSG,ALL,<message> : Send message to all connected
