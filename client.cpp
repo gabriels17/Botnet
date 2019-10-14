@@ -1,9 +1,9 @@
 //
 // Simple chat client for TSAM-409
 //
-// Command line: ./chat_client 4000 
+// Command line: ./_client 127.0.0.1 4000 
 //
-// Author: Jacky Mallett (jacky@ru.is)
+// Author: Gabríel Sighvatsson (gabriels17@ru.is) & Karl Bachmann (karl19@ru.is)
 //
 #include <stdio.h>
 #include <errno.h>
@@ -26,6 +26,8 @@
 #include <sstream>
 #include <thread>
 #include <map>
+#include <sys/time.h>
+#include <fstream>
 
 // Threaded function for handling responss from server
 
@@ -38,6 +40,7 @@ void listenServer(int serverSocket)
     {
        memset(buffer, 0, sizeof(buffer));
        nread = read(serverSocket, buffer, sizeof(buffer));
+       std::cout << "----- frá server ---- " << std::endl;
 
        if(nread == 0)                      // Server has dropped us
        {
@@ -115,17 +118,37 @@ int main(int argc, char* argv[])
    finished = false;
    while(!finished)
    {
+       std::cout << ">";
        bzero(buffer, sizeof(buffer));
 
        fgets(buffer, sizeof(buffer), stdin);
 
        nwrite = send(serverSocket, buffer, strlen(buffer),0);
+       // timestamp on send
+       struct timeval sendTime, recvTime;
+       gettimeofday(&sendTime, NULL);
+       std::ofstream myfile;
+       myfile.open ("log.txt", std::ios::app);
+       myfile << "Message sent from client timestamp: " << buffer << ctime(&sendTime.tv_sec);
+       myfile.close();
+       
+       std::cout << "Message sent Timestamp: " << ctime(&sendTime.tv_sec);
+       
+       //clear the buffer        
+       
+       memset(&buffer, 0, sizeof(buffer));
+       
+       //nread = recv(serverSocket, (char*)&buffer, sizeof(buffer), 0);
+               
+       // timestamp on receive
+       //gettimeofday(&recvTime, NULL);
+       //std::cout << "Message received Timestamp: " << ctime(&recvTime.tv_sec);
 
        if(nwrite  == -1)
        {
            perror("send() to server failed: ");
            finished = true;
        }
-
+       
    }
 }
