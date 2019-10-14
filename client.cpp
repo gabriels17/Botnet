@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
 
        nwrite = send(serverSocket, buffer, strlen(buffer),0);
        // timestamp on send
-       struct timeval sendTime, recvTime;
+       struct timeval sendTime;
        gettimeofday(&sendTime, NULL);
        std::ofstream myfile;
        myfile.open ("log.txt", std::ios::app);
