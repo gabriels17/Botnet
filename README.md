@@ -12,10 +12,8 @@ To run:
 
 Client Commands:
 
-- CONNECT,<name> : Connect to server as <name>
+- CONNECT,<ip><port> : Connect to server at <ip> on port <port>
 - WHO : Lists connections
-- MSG,<group-name>,<message> : Send message to group
-- MSG,ALL,<message> : Send message to all connected
 
 Server Commands:
 
