@@ -1,3 +1,5 @@
+Our code was primarily compiled on a Windows machine in WSL the linux subsystem.
+
 To compile:
 
     make
