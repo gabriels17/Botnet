@@ -20,7 +20,7 @@ Client Commands:
 Server Commands:
 
 - LISTSERVERS,\<from-group-name\> : Requests a list of servers connected
-- KEEPALIVE,\<no-of-messages-waiting\> : Messages a connected server, indicating still alive and the no. of messages waiting for the server to be "get-ed".
-- GETMSG : Asks a group for the messages it has sent to us
-- SEND_MSG,\<from-name\>,\<to-name\>,\<message\> : Sends a message
+- KEEPALIVE,\<no-of-messages-waiting\> : Messages a connected server, indicating still alive and the no. of messages waiting for the server.
+- GETMSG,\<from-name\> : Asks a group for the messages received
+- SEND_MSG,\<from-name\>,\<to-name\>,\<message\> : Sends a message to a group
 - LEAVE,\<server-ip\>,\<server-port\> : Disconnects from specified server
