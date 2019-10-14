@@ -16,3 +16,11 @@ Client Commands:
 - WHO : Lists connections
 - MSG,<group-name>,<message> : Send message to group
 - MSG,ALL,<message> : Send message to all connected
+
+Server Commands:
+
+- LISTSERVERS,<from-group-name> : Requests a list of servers connected
+- KEEPALIVE,<no-of-messages> : ???
+- GETMSG : ???
+- SEND_MSG,<from-name>,<to-name>,<message> : Sends a message
+- LEAVE,<server-ip>,<server-port> : Disconnects from specified server
